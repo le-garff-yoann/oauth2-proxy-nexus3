@@ -12,16 +12,13 @@ import (
 func main() {
 	setConfig()
 
-	envConfig["N3P_LISTEN_ON"] = os.Getenv("N3P_LISTEN_ON")
-	envConfig["N3P_SSL_INSECURE_SKIP_VERIFY"] = os.Getenv("N3P_SSL_INSECURE_SKIP_VERIFY")
-
 	var (
 		router = mux.NewRouter().StrictSlash(true)
 
-		server = http.Server{Addr: envConfig["N3P_LISTEN_ON"], Handler: router}
+		server = http.Server{Addr: os.Getenv("N3GOP_LISTEN_ON"), Handler: router}
 	)
 
-	if envConfig["N3P_SSL_INSECURE_SKIP_VERIFY"] == "true" {
+	if os.Getenv("N3GOP_SSL_INSECURE_SKIP_VERIFY") == "true" {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 

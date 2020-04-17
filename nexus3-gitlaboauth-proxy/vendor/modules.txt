@@ -4,3 +4,6 @@ github.com/google/uuid
 # github.com/gorilla/mux v1.7.4
 ## explicit
 github.com/gorilla/mux
+# github.com/thoas/go-funk v0.6.0
+## explicit
+github.com/thoas/go-funk
