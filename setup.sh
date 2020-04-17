@@ -51,8 +51,8 @@ nexus3_configure_rut_realm https://nexus3-direct.localhost \
     || die "Error while configuring Nexus 3's Rut realm."
 
 export \
-    OAUTH2PROXY_CLIENT_ID=$(echo $oauth2proxynexus3_application | jq -cr .uid) \
-    OAUTH2PROXY_CLIENT_SECRET=$(echo $oauth2proxynexus3_application | jq -cr .secret) \
+    OAUTH2_PROXY_CLIENT_ID=$(echo $oauth2proxynexus3_application | jq -cr .uid) \
+    OAUTH2_PROXY_CLIENT_SECRET=$(echo $oauth2proxynexus3_application | jq -cr .secret) \
     OAUTH2_PROXY_COOKIE_NAME=oauth2-proxy-nexus3
 
 docker-compose up -d --build --force-recreate oauth2-proxy nexus3-gitlaboauth-proxy \

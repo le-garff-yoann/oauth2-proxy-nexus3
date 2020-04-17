@@ -1,4 +1,4 @@
-package main
+package gitlab
 
 import (
 	"encoding/json"
@@ -9,18 +9,22 @@ import (
 	"net/url"
 )
 
-type gitlabOAuthConn struct {
-	URL string
+// OAuthConn represents a connexion to GitLab.
+type OAuthConn struct {
+	URL *url.URL
 }
 
-type gitlabUserInfo struct {
+// OAuthUserInfo is the partial and GitLab specific representation
+// of a OAuth2 */userinfo* response.
+type OAuthUserInfo struct {
 	Username string   `json:"nickname"`
 	Email    string   `json:"email"`
 	Groups   []string `json:"groups"`
 }
 
-func (s *gitlabOAuthConn) getUserInfo(accessToken string) (*gitlabUserInfo, error) {
-	endpoint, err := url.Parse(fmt.Sprintf(s.URL + "/oauth/userinfo"))
+// GetUserInfo returns `OAuthUserInfo` based on an *accessToken*.
+func (s *OAuthConn) GetUserInfo(accessToken string) (*OAuthUserInfo, error) {
+	endpoint, err := url.Parse(fmt.Sprintf(s.URL.String() + "/oauth/userinfo"))
 	if err != nil {
 		log.Fatalf("Failed to parse the GitLab URL: %s", err)
 	}
@@ -33,10 +37,10 @@ func (s *gitlabOAuthConn) getUserInfo(accessToken string) (*gitlabUserInfo, erro
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	res, err := http.DefaultClient.Do(req)
-	defer res.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("failed to request the GitLab GET userinfo endpoint on %s: %s", s.URL, err)
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		if resBody, err := ioutil.ReadAll(res.Body); err == nil {
@@ -46,7 +50,7 @@ func (s *gitlabOAuthConn) getUserInfo(accessToken string) (*gitlabUserInfo, erro
 		return nil, fmt.Errorf("failed to read the GitLab GET userinfo error response: %s", err)
 	}
 
-	var userInfo gitlabUserInfo
+	var userInfo OAuthUserInfo
 	if err := json.NewDecoder(res.Body).Decode(&userInfo); err != nil {
 		return nil, fmt.Errorf("failed to decode the GitLab GET userinfo responses: %s", err)
 	}

@@ -34,8 +34,8 @@ services:
       OAUTH2_PROXY_REVERSE_PROXY: "true"
       OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY: "true"
       OAUTH2_PROXY_PROVIDER: gitlab
-      OAUTH2_PROXY_CLIENT_ID: $OAUTH2PROXY_CLIENT_ID
-      OAUTH2_PROXY_CLIENT_SECRET: $OAUTH2PROXY_CLIENT_SECRET
+      OAUTH2_PROXY_CLIENT_ID: $OAUTH2_PROXY_CLIENT_ID
+      OAUTH2_PROXY_CLIENT_SECRET: $OAUTH2_PROXY_CLIENT_SECRET
       OAUTH2_PROXY_UPSTREAMS: http://nexus3-gitlaboauth-proxy
       OAUTH2_PROXY_LOGIN_URL: https://gitlab.localhost/oauth/authorize
       OAUTH2_PROXY_REDEEM_URL: https://gitlab.localhost/oauth/token
@@ -53,17 +53,14 @@ services:
 
   nexus3-gitlaboauth-proxy:
     build:
-      context: nexus3-gitlaboauth-proxy/
+      context: nexus3-gitlaboauth-proxy/src/nexus3-gitlaboauth-proxy/
     environment:
       N3GOP_LISTEN_ON: 0.0.0.0:80
       N3GOP_SSL_INSECURE_SKIP_VERIFY: "true"
       N3GOP_GITLAB_URL: http://gitlab
-      N3GOP_GITLAB_ACCESS_TOKEN_HEADER: X-Forwarded-Access-Token
       N3GOP_NEXUS3_URL: http://nexus3:8081
       N3GOP_NEXUS3_ADMIN_USER: $N3GOP_NEXUS3_ADMIN_USER
       N3GOP_NEXUS3_ADMIN_PASSWORD: $N3GOP_NEXUS3_ADMIN_PASSWORD
-      N3GOP_NEXUS3_RUT_USER_HEADER: X-Forwarded-User
-      N3GOP_NEXUS3_RUT_EMAIL_HEADER: X-Forwarded-Email
     restart: unless-stopped
     depends_on:
       - nexus3

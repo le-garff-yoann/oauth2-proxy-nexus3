@@ -1,6 +1,6 @@
 # compose-gitlab-nexus3-oauth-setup
 
-> Demonstrative setup of Sonatype Nexus 3 using GitLab as an un OAuth2 provider via [oauth2-proxy](https://github.com/oauth2-proxy/oauth2-proxy), nginx and [nexus3-gitlaboauth-proxy](nexus3-gitlaboauth-proxy/).
+> Demonstrative setup of Sonatype Nexus 3 using GitLab as an un OAuth2 provider via [oauth2-proxy](https://github.com/oauth2-proxy/oauth2-proxy), nginx and [nexus3-gitlaboauth-proxy](nexus3-gitlaboauth-proxy/src/nexus3-gitlaboauth-proxy/).
 
 ## TL;DR
 

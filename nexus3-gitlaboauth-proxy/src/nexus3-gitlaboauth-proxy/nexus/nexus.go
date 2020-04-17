@@ -1,4 +1,4 @@
-package main
+package nexus
 
 import (
 	"bytes"
@@ -14,18 +14,19 @@ import (
 )
 
 const (
-	nexusAnonymousRoleID       = "nx-anonymous"
-	nexusDefaultSourceName     = "default"
-	nexusUserStatusActiveValue = "active"
+	anonymousRoleID       = "nx-anonymous"
+	defaultSourceName     = "default"
+	userStatusActiveValue = "active"
 )
 
-type nexusConn struct {
+// Conn represents a connexion to Nexus 3.
+type Conn struct {
 	BaseURL *url.URL
 
 	Username, Password string
 }
 
-type nexusUser struct {
+type user struct {
 	UserID       string   `json:"userId"`
 	FirstName    string   `json:"firstName"`
 	LastName     string   `json:"lastName"`
@@ -35,32 +36,23 @@ type nexusUser struct {
 	RoleIDs      []string `json:"roles"`
 }
 
-type nexusRole struct {
+type role struct {
 	ID string `json:"id"`
 }
 
-type nexusUserModifier struct {
-	nexusUser
+type userModifier struct {
+	user
 
 	Source string `json:"source"`
 }
 
-func newNexusConn(baseURL, Username, Password string) (*nexusConn, error) {
-	url, err := url.Parse(baseURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse the Nexus 3 base URL: %s", err)
-	}
-
-	return &nexusConn{url, Username, Password}, nil
-}
-
-func (s *nexusConn) newUserEndpointURL() *url.URL {
+func (s *Conn) newUserEndpointURL() *url.URL {
 	url, _ := url.Parse(s.BaseURL.String() + "/service/rest/beta/security/users")
 
 	return url
 }
 
-func (s *nexusConn) getUser(userID string) (*nexusUser, error) {
+func (s *Conn) getUser(userID string) (*user, error) {
 	endpoint := s.newUserEndpointURL()
 
 	endpointQuery, _ := url.ParseQuery(endpoint.RawQuery)
@@ -77,12 +69,12 @@ func (s *nexusConn) getUser(userID string) (*nexusUser, error) {
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
-	defer res.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("failed to request the Nexus 3 GET user endpoint on %s: %s", endpoint.String(), err)
 	}
+	defer res.Body.Close()
 
-	var users []nexusUser
+	var users []user
 	if err := json.NewDecoder(res.Body).Decode(&users); err != nil {
 		return nil, fmt.Errorf("failed to decode the Nexus 3 GET user response: %d", err)
 	}
@@ -96,7 +88,7 @@ func (s *nexusConn) getUser(userID string) (*nexusUser, error) {
 	return nil, nil
 }
 
-func (s *nexusConn) createUser(user nexusUser) error {
+func (s *Conn) createUser(user user) error {
 	endpoint := s.newUserEndpointURL()
 
 	reqBody, err := json.Marshal(&user)
@@ -113,10 +105,10 @@ func (s *nexusConn) createUser(user nexusUser) error {
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
-	defer res.Body.Close()
 	if err != nil {
 		return fmt.Errorf("failed to request the Nexus 3 POST user endpoint on %s: %s", endpoint.String(), err)
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		if resBody, err := ioutil.ReadAll(res.Body); err == nil {
@@ -129,7 +121,7 @@ func (s *nexusConn) createUser(user nexusUser) error {
 	return nil
 }
 
-func (s *nexusConn) modifyUser(userModifier nexusUserModifier) error {
+func (s *Conn) modifyUser(userModifier userModifier) error {
 	endpoint := s.newUserEndpointURL()
 
 	reqBody, err := json.Marshal(&userModifier)
@@ -146,10 +138,10 @@ func (s *nexusConn) modifyUser(userModifier nexusUserModifier) error {
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
-	defer res.Body.Close()
 	if err != nil {
 		return fmt.Errorf("failed to request the Nexus 3 PUT user endpoint on %s: %s", endpoint.String(), err)
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		if resBody, err := ioutil.ReadAll(res.Body); err == nil {
@@ -162,7 +154,7 @@ func (s *nexusConn) modifyUser(userModifier nexusUserModifier) error {
 	return nil
 }
 
-func (s *nexusConn) getRoles() ([]nexusRole, error) {
+func (s *Conn) getRoles() ([]role, error) {
 	endpoint, _ := url.Parse(s.BaseURL.String() + "/service/rest/beta/security/roles")
 
 	req, err := http.NewRequest("GET", endpoint.String(), nil)
@@ -174,12 +166,12 @@ func (s *nexusConn) getRoles() ([]nexusRole, error) {
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
-	defer res.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("failed to request the Nexus 3 GET roles endpoint on %s: %s", endpoint.String(), err)
 	}
+	defer res.Body.Close()
 
-	var roles []nexusRole
+	var roles []role
 	if err := json.NewDecoder(res.Body).Decode(&roles); err != nil {
 		return nil, fmt.Errorf("failed to decode the Nexus 3 GET roles response: %d", err)
 	}
@@ -187,33 +179,33 @@ func (s *nexusConn) getRoles() ([]nexusRole, error) {
 	return roles, nil
 }
 
-func (s *nexusConn) userModifier(oldUser, newUser nexusUser, existingRoles []nexusRole) (bool, *nexusUserModifier) {
+func (s *Conn) userModifier(oldUser, newUser user, existingRoles []role) (bool, *userModifier) {
 	var (
-		ok = false
+		shouldModify = false
 
-		userModifier = nexusUserModifier{}
+		userModifier = userModifier{}
 	)
 
 	userModifier.Password = oldUser.Password
-	userModifier.Source = nexusDefaultSourceName
+	userModifier.Source = defaultSourceName
 
 	if oldUser.UserID != newUser.UserID {
-		ok = true
+		shouldModify = true
 
 		userModifier.UserID = newUser.UserID
 	}
 	if oldUser.FirstName != newUser.FirstName {
-		ok = true
+		shouldModify = true
 
 		userModifier.FirstName = newUser.FirstName
 	}
 	if oldUser.LastName != newUser.LastName {
-		ok = true
+		shouldModify = true
 
 		userModifier.LastName = newUser.LastName
 	}
 	if oldUser.Status != newUser.Status {
-		ok = true
+		shouldModify = true
 
 		userModifier.Status = newUser.Status
 	}
@@ -235,16 +227,18 @@ func (s *nexusConn) userModifier(oldUser, newUser nexusUser, existingRoles []nex
 
 	userModifier.RoleIDs = funk.UniqString(userModifier.RoleIDs)
 
-	return ok || len(userModifier.RoleIDs) > len(oldUser.RoleIDs), &userModifier
+	return shouldModify || len(userModifier.RoleIDs) > len(oldUser.RoleIDs), &userModifier
 }
 
-func (s *nexusConn) syncUser(username, email string, roleIDs []string) error {
-	user := nexusUser{
+// SyncUser "synchronizes" the user on Nexus 3
+// based on the parameters passed to this method.
+func (s *Conn) SyncUser(username, email string, roleIDs []string) error {
+	user := user{
 		UserID:       username,
 		FirstName:    username,
 		LastName:     username,
 		EmailAddress: email,
-		Status:       nexusUserStatusActiveValue,
+		Status:       userStatusActiveValue,
 		RoleIDs:      roleIDs,
 	}
 
@@ -262,7 +256,7 @@ func (s *nexusConn) syncUser(username, email string, roleIDs []string) error {
 		_, userModifier := s.userModifier(user, user, existingRoles)
 
 		if len(userModifier.RoleIDs) == 0 {
-			user.RoleIDs = []string{nexusAnonymousRoleID}
+			user.RoleIDs = []string{anonymousRoleID}
 		} else {
 			user.RoleIDs = userModifier.RoleIDs
 		}
