@@ -9,6 +9,8 @@ import (
 	"net/url"
 )
 
+const userInfoEndpointPath = "/oauth/userinfo"
+
 // OAuthConn represents a connexion to GitLab.
 type OAuthConn struct {
 	URL *url.URL
@@ -24,7 +26,7 @@ type OAuthUserInfo struct {
 
 // GetUserInfo returns `OAuthUserInfo` based on an *accessToken*.
 func (s *OAuthConn) GetUserInfo(accessToken string) (*OAuthUserInfo, error) {
-	endpoint, err := url.Parse(fmt.Sprintf(s.URL.String() + "/oauth/userinfo"))
+	endpoint, err := url.Parse(fmt.Sprintf(s.URL.String() + userInfoEndpointPath))
 	if err != nil {
 		log.Fatalf("Failed to parse the GitLab URL: %s", err)
 	}

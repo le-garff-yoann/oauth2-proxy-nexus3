@@ -4,9 +4,9 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
+	"nexus3-gitlaboauth-proxy/reverseproxy"
 
 	env "github.com/caarlos0/env/v6"
-	"github.com/gorilla/mux"
 )
 
 var cfg = config{}
@@ -17,15 +17,18 @@ func main() {
 	}
 
 	var (
-		router = mux.NewRouter().StrictSlash(true)
+		reverseProxy = reverseproxy.New(
+			cfg.NexusURL, cfg.GitlabURL, cfg.NexusURL,
+			cfg.GitlabAccessTokenHeader,
+			cfg.NexusAdminUser, cfg.NexusAdminPassword, cfg.NexusRutHeader,
+		)
 
-		server = http.Server{Addr: cfg.ListenOn, Handler: router}
+		server = http.Server{Addr: cfg.ListenOn, Handler: reverseProxy.Router}
 	)
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: cfg.SSLInsecureSkipVerify}
 
 	log.Println("Starting the proxy")
 
-	setupRoutes(router)
 	log.Panicln(server.ListenAndServe())
 }
