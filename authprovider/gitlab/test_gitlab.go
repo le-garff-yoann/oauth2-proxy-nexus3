@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 )
 
-// NewTestServer returns an `httptest.Server` that partially implements the GitLab OAuth2 API.
-func NewTestServer(accessToken string, userInfo *OAuthUserInfo) *httptest.Server {
+// NewTestServer returns an `httptest.Server` that partially implements the GitLab OIDC API.
+func NewTestServer(accessToken string, userInfo *UserInfo) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == userInfoEndpointPath {
 			if r.Header["Authorization"][0] == "Bearer "+accessToken {

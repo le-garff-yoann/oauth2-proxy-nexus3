@@ -12,8 +12,8 @@ func TestGetUserInfo(t *testing.T) {
 
 	var (
 		expectedAccessToken = "expectedToken"
-		expectedUserInfo    = OAuthUserInfo{
-			Username: "foo",
+		expectedUserInfo    = UserInfo{
+			Nickname: "foo",
 			Email:    "foo@test.bar",
 			Groups:   []string{"bar"},
 		}
@@ -21,7 +21,7 @@ func TestGetUserInfo(t *testing.T) {
 		srv = NewTestServer(expectedAccessToken, &expectedUserInfo)
 
 		srvURL, _ = url.Parse(srv.URL)
-		client    = OAuthConn{URL: srvURL}
+		client    = Client{URL: srvURL}
 	)
 
 	defer srv.Close()
@@ -34,7 +34,7 @@ func TestGetUserInfo(t *testing.T) {
 	require.Error(t, err)
 
 	badURL, _ := url.Parse("/bad-url")
-	client = OAuthConn{URL: badURL}
+	client = Client{URL: badURL}
 
 	_, err = client.GetUserInfo(expectedAccessToken)
 	require.Error(t, err)

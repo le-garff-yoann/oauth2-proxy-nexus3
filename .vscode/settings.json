@@ -1,0 +1,4 @@
+{
+    "go.testFlags": [ "-count=1" ],
+    "go.buildTags": "authprovider_gitlab"
+}

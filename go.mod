@@ -1,4 +1,4 @@
-module nexus3-gitlaboauth-proxy
+module oauth2-proxy-nexus3
 
 go 1.14
 

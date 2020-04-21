@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"nexus3-gitlaboauth-proxy/gitlab"
-	"nexus3-gitlaboauth-proxy/nexus"
+	"oauth2-proxy-nexus3/authprovider/gitlab"
+	"oauth2-proxy-nexus3/nexus"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -23,12 +23,12 @@ func TestNew(t *testing.T) {
 		}
 		nexusAvailablesRoles = []nexus.Role{{ID: nexusUser.RoleIDs[0]}}
 
-		gitLabOAuthTestSrv = gitlab.NewTestServer(oauthAccessToken, &gitlab.OAuthUserInfo{
-			Username: nexusUser.UserID,
+		gitlabOIDCTestSrv = gitlab.NewTestServer(oauthAccessToken, &gitlab.UserInfo{
+			Nickname: nexusUser.UserID,
 			Email:    nexusUser.EmailAddress,
 			Groups:   nexusUser.RoleIDs,
 		})
-		gitLabOAuthTestSrvURL, _ = url.Parse(gitLabOAuthTestSrv.URL)
+		gitlabOIDCTestSrvURL, _ = url.Parse(gitlabOIDCTestSrv.URL)
 
 		nexusTestSrv = nexus.NewTestServer(
 			[]nexus.UserModifier{{User: nexusUser}},
@@ -38,7 +38,7 @@ func TestNew(t *testing.T) {
 
 		rproxyAccessTokenHeader = "X-Forwarded-Access-Token"
 		rproxy                  = New(
-			nexusTestSrvURL, gitLabOAuthTestSrvURL, nexusTestSrvURL,
+			nexusTestSrvURL, gitlabOIDCTestSrvURL, nexusTestSrvURL,
 			rproxyAccessTokenHeader,
 			"null", "null", "X-Forwarded-User",
 		)
@@ -46,7 +46,7 @@ func TestNew(t *testing.T) {
 		rProxySrv = httptest.NewServer(rproxy.Router.GetRoute(routeName).GetHandler())
 	)
 
-	defer gitLabOAuthTestSrv.Close()
+	defer gitlabOIDCTestSrv.Close()
 	defer nexusTestSrv.Close()
 	defer rProxySrv.Close()
 

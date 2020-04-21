@@ -36,18 +36,18 @@ oauth2proxynexus3_application=$(gitlab_configure_oauth2proxynexus3_application $
     || die 'Error while configuring the oauth2-proxy/nexus3 application in GitLab.')
 
 export \
-    N3GOP_NEXUS3_ADMIN_USER=admin \
-    N3GOP_NEXUS3_ORIGINAL_ADMIN_PASSWORD=$(docker-compose exec nexus3 cat /nexus-data/admin.password) \
-    N3GOP_NEXUS3_ADMIN_PASSWORD=$(uuidgen)
+    O2PN3_NEXUS3_ADMIN_USER=admin \
+    O2PN3_NEXUS3_ORIGINAL_ADMIN_PASSWORD=$(docker-compose exec nexus3 cat /nexus-data/admin.password) \
+    O2PN3_NEXUS3_ADMIN_PASSWORD=$(uuidgen)
 
 echo "Change Nexus 3's default admin password."
 nexus3_modify_user_password https://nexus3-direct.localhost \
-    $N3GOP_NEXUS3_ADMIN_USER $N3GOP_NEXUS3_ORIGINAL_ADMIN_PASSWORD $N3GOP_NEXUS3_ADMIN_PASSWORD 1>/dev/null \
+    $O2PN3_NEXUS3_ADMIN_USER $O2PN3_NEXUS3_ORIGINAL_ADMIN_PASSWORD $O2PN3_NEXUS3_ADMIN_PASSWORD 1>/dev/null \
     || die "Error while configuring Nexus 3's default admin password."
 
 echo "Configure Nexus 3's Rut realm."
 nexus3_configure_rut_realm https://nexus3-direct.localhost \
-    "$N3GOP_NEXUS3_ADMIN_USER:$N3GOP_NEXUS3_ADMIN_PASSWORD" 1>/dev/null \
+    "$O2PN3_NEXUS3_ADMIN_USER:$O2PN3_NEXUS3_ADMIN_PASSWORD" 1>/dev/null \
     || die "Error while configuring Nexus 3's Rut realm."
 
 export \
@@ -55,7 +55,7 @@ export \
     OAUTH2_PROXY_CLIENT_SECRET=$(echo $oauth2proxynexus3_application | jq -cr .secret) \
     OAUTH2_PROXY_COOKIE_NAME=oauth2-proxy-nexus3
 
-docker-compose up -d --build --force-recreate oauth2-proxy nexus3-gitlaboauth-proxy \
+docker-compose up -d --build --force-recreate oauth2-proxy oauth2-proxy-nexus3 \
     || die 'docker-compose returned an error.'
 
 docker-compose restart || die 'docker-compose returned an error.'
@@ -66,7 +66,7 @@ wait_for https://nexus3-direct.localhost
 
 cat <<EOF > .secrets.env
 GITLAB_ROOT_PASSWORD=$GITLAB_ROOT_PASSWORD
-NEXUS3_ADMIN_PASSWORD=$N3GOP_NEXUS3_ADMIN_PASSWORD
+NEXUS3_ADMIN_PASSWORD=$O2PN3_NEXUS3_ADMIN_PASSWORD
 EOF
 
 cat .secrets.env

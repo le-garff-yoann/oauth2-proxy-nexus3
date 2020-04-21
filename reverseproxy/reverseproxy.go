@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"nexus3-gitlaboauth-proxy/gitlab"
-	"nexus3-gitlaboauth-proxy/nexus"
+	"oauth2-proxy-nexus3/authprovider"
+	"oauth2-proxy-nexus3/nexus"
 
 	"github.com/gorilla/mux"
 )
@@ -14,21 +14,21 @@ import (
 const routeName = "main"
 
 // ReverseProxy It represents the reverse proxy which
-// is the "glue" between oauth2-proxy, GitLab and Nexus 3.
+// is the "glue" between oauth2-proxy, the Auth provider and Nexus 3.
 type ReverseProxy struct {
 	Router *mux.Router
 }
 
 // New initializes and returns a new `ReverseProxy`.
 func New(
-	upstreamURL, gitlabURL, nexusURL *url.URL,
-	gitlabAccessTokenHeader, nexusAdminUser, nexusAdminPassword, nexusRutHeader string,
+	upstreamURL, authproviderURL, nexusURL *url.URL,
+	accessTokenHeader, nexusAdminUser, nexusAdminPassword, nexusRutHeader string,
 ) *ReverseProxy {
 	s := ReverseProxy{
 		Router: mux.NewRouter().StrictSlash(true),
 	}
 
-	nexusConn := nexus.Conn{
+	nexusClient := nexus.Client{
 		BaseURL:  nexusURL,
 		Username: nexusAdminUser,
 		Password: nexusAdminPassword,
@@ -44,35 +44,36 @@ func New(
 					http.Error(w, msg, code)
 				}
 
-				accessToken = r.Header.Get(gitlabAccessTokenHeader)
+				accessToken = r.Header.Get(accessTokenHeader)
 			)
 
 			if accessToken == "" {
-				writeErrCb("header "+gitlabAccessTokenHeader+" value is null", http.StatusBadRequest)
+				writeErrCb("header "+accessTokenHeader+" value is null", http.StatusBadRequest)
 
 				return
 			}
 
-			gitlabOAuthConn := gitlab.OAuthConn{URL: gitlabURL}
+			var authproviderClient authprovider.Client
+			authproviderClient = newAuthproviderClient(authproviderURL)
 
-			gitlabOAuthUserInfo, err := gitlabOAuthConn.GetUserInfo(accessToken)
+			userInfo, err := authproviderClient.GetUserInfo(accessToken)
 			if err != nil {
 				writeErrCb(err.Error(), http.StatusInternalServerError)
 
 				return
 			}
 
-			if err = nexusConn.SyncUser(
-				gitlabOAuthUserInfo.Username,
-				gitlabOAuthUserInfo.Email,
-				gitlabOAuthUserInfo.Groups,
+			if err = nexusClient.SyncUser(
+				userInfo.Username(),
+				userInfo.EmailAddress(),
+				userInfo.Roles(),
 			); err != nil {
 				writeErrCb(err.Error(), http.StatusInternalServerError)
 
 				return
 			}
 
-			r.Header.Set(nexusRutHeader, gitlabOAuthUserInfo.Username)
+			r.Header.Set(nexusRutHeader, userInfo.Username())
 
 			httputil.NewSingleHostReverseProxy(upstreamURL).ServeHTTP(w, r)
 		}).

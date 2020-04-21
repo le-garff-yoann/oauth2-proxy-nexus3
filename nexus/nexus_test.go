@@ -24,7 +24,7 @@ func TestUsers(t *testing.T) {
 		srv = NewTestServer([]UserModifier{}, &[]Role{})
 
 		srvURL, _ = url.Parse(srv.URL)
-		client    = Conn{BaseURL: srvURL}
+		client    = Client{BaseURL: srvURL}
 	)
 
 	defer srv.Close()
@@ -57,7 +57,7 @@ func TestRoles(t *testing.T) {
 		srv = NewTestServer([]UserModifier{}, &existingRoles)
 
 		srvURL, _ = url.Parse(srv.URL)
-		client    = Conn{BaseURL: srvURL}
+		client    = Client{BaseURL: srvURL}
 	)
 
 	defer srv.Close()
@@ -94,7 +94,7 @@ func TestSyncUser(t *testing.T) {
 		)
 
 		srvURL, _ = url.Parse(srv.URL)
-		client    = Conn{BaseURL: srvURL}
+		client    = Client{BaseURL: srvURL}
 	)
 
 	defer srv.Close()

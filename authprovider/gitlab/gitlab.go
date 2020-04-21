@@ -4,31 +4,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
+	"oauth2-proxy-nexus3/authprovider"
 )
 
 const userInfoEndpointPath = "/oauth/userinfo"
 
-// OAuthConn represents a connexion to GitLab.
-type OAuthConn struct {
+// Client implements `authprovider.Client`.
+type Client struct {
 	URL *url.URL
 }
 
-// OAuthUserInfo is the partial and GitLab specific representation
-// of a OAuth2 */userinfo* response.
-type OAuthUserInfo struct {
-	Username string   `json:"nickname"`
-	Email    string   `json:"email"`
-	Groups   []string `json:"groups"`
-}
-
-// GetUserInfo returns `OAuthUserInfo` based on an *accessToken*.
-func (s *OAuthConn) GetUserInfo(accessToken string) (*OAuthUserInfo, error) {
+// GetUserInfo implements `authprovider.Client`.
+func (s *Client) GetUserInfo(accessToken string) (authprovider.UserInfo, error) {
 	endpoint, err := url.Parse(fmt.Sprintf(s.URL.String() + userInfoEndpointPath))
 	if err != nil {
-		log.Fatalf("Failed to parse the GitLab URL: %s", err)
+		return nil, fmt.Errorf("Failed to parse the GitLab URL: %s", err)
 	}
 
 	req, err := http.NewRequest("GET", endpoint.String(), nil)
@@ -52,10 +44,32 @@ func (s *OAuthConn) GetUserInfo(accessToken string) (*OAuthUserInfo, error) {
 		return nil, fmt.Errorf("failed to read the GitLab GET userinfo error response: %s", err)
 	}
 
-	var userInfo OAuthUserInfo
+	var userInfo UserInfo
 	if err := json.NewDecoder(res.Body).Decode(&userInfo); err != nil {
 		return nil, fmt.Errorf("failed to decode the GitLab GET userinfo responses: %s", err)
 	}
 
 	return &userInfo, nil
+}
+
+// UserInfo implements `authprovider.UserInfo`.
+type UserInfo struct {
+	Nickname string   `json:"nickname"`
+	Email    string   `json:"email"`
+	Groups   []string `json:"groups"`
+}
+
+// Username implements `authprovider.UserInfo`.
+func (s *UserInfo) Username() string {
+	return s.Nickname
+}
+
+// EmailAddress implements `authprovider.UserInfo`.
+func (s *UserInfo) EmailAddress() string {
+	return s.Email
+}
+
+// Roles implements `authprovider.UserInfo`.
+func (s *UserInfo) Roles() []string {
+	return s.Groups
 }

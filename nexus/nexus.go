@@ -22,8 +22,8 @@ const (
 	roleEndpointPath = "/service/rest/beta/security/roles"
 )
 
-// Conn represents a connexion to Nexus 3.
-type Conn struct {
+// Client represents a Clientexion to Nexus 3.
+type Client struct {
 	BaseURL *url.URL
 
 	Username, Password string
@@ -53,13 +53,13 @@ type UserModifier struct {
 	Source string `json:"source"`
 }
 
-func (s *Conn) newUserEndpointURL() *url.URL {
+func (s *Client) newUserEndpointURL() *url.URL {
 	url, _ := url.Parse(s.BaseURL.String() + userEndpointPath)
 
 	return url
 }
 
-func (s *Conn) getUser(userID string) (*User, error) {
+func (s *Client) getUser(userID string) (*User, error) {
 	endpoint := s.newUserEndpointURL()
 
 	endpointQuery, _ := url.ParseQuery(endpoint.RawQuery)
@@ -95,7 +95,7 @@ func (s *Conn) getUser(userID string) (*User, error) {
 	return nil, nil
 }
 
-func (s *Conn) createUser(user *User) error {
+func (s *Client) createUser(user *User) error {
 	endpoint := s.newUserEndpointURL()
 
 	reqBody, err := json.Marshal(user)
@@ -128,7 +128,7 @@ func (s *Conn) createUser(user *User) error {
 	return nil
 }
 
-func (s *Conn) modifyUser(username string, userModifier *UserModifier) error {
+func (s *Client) modifyUser(username string, userModifier *UserModifier) error {
 	endpoint := s.newUserEndpointURL()
 	endpoint.Path += "/" + username
 
@@ -162,7 +162,7 @@ func (s *Conn) modifyUser(username string, userModifier *UserModifier) error {
 	return nil
 }
 
-func (s *Conn) getRoles() ([]Role, error) {
+func (s *Client) getRoles() ([]Role, error) {
 	endpoint, _ := url.Parse(s.BaseURL.String() + roleEndpointPath)
 
 	req, err := http.NewRequest("GET", endpoint.String(), nil)
@@ -187,7 +187,7 @@ func (s *Conn) getRoles() ([]Role, error) {
 	return roles, nil
 }
 
-func (s *Conn) userModifier(oldUser, newUser *User, existingRoles []Role) (bool, *UserModifier) {
+func (s *Client) userModifier(oldUser, newUser *User, existingRoles []Role) (bool, *UserModifier) {
 	var (
 		userModifier = UserModifier{
 			User: User{
@@ -238,7 +238,7 @@ func (s *Conn) userModifier(oldUser, newUser *User, existingRoles []Role) (bool,
 
 // SyncUser "synchronizes" the user on Nexus 3
 // based on the parameters passed to this method.
-func (s *Conn) SyncUser(username, email string, roleIDs []string) error {
+func (s *Client) SyncUser(username, email string, roleIDs []string) error {
 	user := &User{
 		UserID:       username,
 		FirstName:    username,

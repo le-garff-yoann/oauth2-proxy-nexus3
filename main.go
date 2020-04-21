@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
-	"nexus3-gitlaboauth-proxy/reverseproxy"
+	"oauth2-proxy-nexus3/reverseproxy"
 
 	env "github.com/caarlos0/env/v6"
 )
@@ -18,8 +18,8 @@ func main() {
 
 	var (
 		reverseProxy = reverseproxy.New(
-			cfg.NexusURL, cfg.GitlabURL, cfg.NexusURL,
-			cfg.GitlabAccessTokenHeader,
+			cfg.NexusURL, cfg.AuthproviderURL, cfg.NexusURL,
+			cfg.AuthproviderAccessTokenHeader,
 			cfg.NexusAdminUser, cfg.NexusAdminPassword, cfg.NexusRutHeader,
 		)
 
