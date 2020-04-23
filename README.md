@@ -1,5 +1,7 @@
 # oauth2-proxy-nexus3
 
+![CI](https://github.com/le-garff-yoann/oauth2-proxy-nexus3/workflows/CI/badge.svg)
+
 This service is designed to operate as a proxy between [oauth2-proxy](https://github.com/oauth2-proxy/oauth2-proxy),
 an Auth provider (AP), which is the one configured for *oauth2-proxy*, and Sonatype Nexus 3.
 
