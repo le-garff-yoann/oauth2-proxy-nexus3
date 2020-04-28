@@ -22,7 +22,7 @@ const (
 	roleEndpointPath = "/service/rest/beta/security/roles"
 )
 
-// Client represents a Clientexion to Nexus 3.
+// Client represents a Client to Nexus 3.
 type Client struct {
 	BaseURL *url.URL
 
