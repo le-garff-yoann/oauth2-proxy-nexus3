@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"oauth2-proxy-nexus3/authprovider/gitlab"
-	"oauth2-proxy-nexus3/nexus"
 	"testing"
 
+	"github.com/le-garff-yoann/oauth2-proxy-nexus3/authprovider/gitlab"
+	"github.com/le-garff-yoann/oauth2-proxy-nexus3/nexus"
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,11 +1,13 @@
+//go:build authprovider_gitlab
 // +build authprovider_gitlab
 
 package reverseproxy
 
 import (
 	"net/url"
-	"oauth2-proxy-nexus3/authprovider"
-	"oauth2-proxy-nexus3/authprovider/gitlab"
+
+	"github.com/le-garff-yoann/oauth2-proxy-nexus3/authprovider"
+	"github.com/le-garff-yoann/oauth2-proxy-nexus3/authprovider/gitlab"
 )
 
 func newAuthproviderClient(URL *url.URL) authprovider.Client {

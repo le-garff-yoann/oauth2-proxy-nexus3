@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"strings"
 )
 
 // Chunk creates an array of elements split into groups with the length of size.
@@ -54,18 +55,17 @@ func Chunk(arr interface{}, size int) interface{} {
 	return resultSlice.Interface()
 }
 
-// ToMap transforms a slice of instances to a Map.
-// []*Foo => Map<int, *Foo>
+// ToMap transforms a collection of instances to a Map.
+// []T => map[type of T.<pivot>]T
 func ToMap(in interface{}, pivot string) interface{} {
-	value := reflect.ValueOf(in)
-
-	// input value must be a slice
-	if value.Kind() != reflect.Slice {
-		panic(fmt.Sprintf("%v must be a slice", in))
+	// input value must be a collection
+	if !IsCollection(in) {
+		panic(fmt.Sprintf("%v must be a slict or an array", in))
 	}
 
-	inType := value.Type()
+	value := reflect.ValueOf(in)
 
+	inType := value.Type()
 	structType := inType.Elem()
 
 	// retrieve the struct in the slice to deduce key type
@@ -73,7 +73,10 @@ func ToMap(in interface{}, pivot string) interface{} {
 		structType = structType.Elem()
 	}
 
-	field, _ := structType.FieldByName(pivot)
+	field, ok := structType.FieldByName(pivot)
+	if !ok {
+		panic(fmt.Sprintf("`%s` must be a field of the struct %s", pivot, structType.Name()))
+	}
 
 	// value of the map will be the input type
 	collectionType := reflect.MapOf(field.Type, inType.Elem())
@@ -97,7 +100,34 @@ func ToMap(in interface{}, pivot string) interface{} {
 	return collection.Interface()
 }
 
-func mapSlice(arrValue reflect.Value, funcValue reflect.Value) interface{} {
+// ToSet transforms a collection of instances to a Set.
+// []T => map[T]struct{}
+func ToSet(in interface{}) interface{} {
+	// input value must be a collection
+	if !IsCollection(in) {
+		panic(fmt.Sprintf("%v must be a slice or an array", in))
+	}
+
+	var (
+		empty      = struct{}{}
+		emptyType  = reflect.TypeOf(empty)
+		emptyValue = reflect.ValueOf(empty)
+	)
+
+	value := reflect.ValueOf(in)
+	elemType := value.Type().Elem()
+
+	// key of the set will be the input type
+	collection := reflect.MakeMap(reflect.MapOf(elemType, emptyType))
+
+	for i := 0; i < value.Len(); i++ {
+		collection.SetMapIndex(value.Index(i), emptyValue)
+	}
+
+	return collection.Interface()
+}
+
+func mapSlice(arrValue reflect.Value, funcValue reflect.Value) reflect.Value {
 	funcType := funcValue.Type()
 
 	if funcType.NumIn() != 1 || funcType.NumOut() == 0 || funcType.NumOut() > 2 {
@@ -124,7 +154,7 @@ func mapSlice(arrValue reflect.Value, funcValue reflect.Value) interface{} {
 			resultSlice = reflect.Append(resultSlice, result)
 		}
 
-		return resultSlice.Interface()
+		return resultSlice
 	}
 
 	if funcType.NumOut() == 2 {
@@ -140,17 +170,17 @@ func mapSlice(arrValue reflect.Value, funcValue reflect.Value) interface{} {
 			collection.SetMapIndex(results[0], results[1])
 		}
 
-		return collection.Interface()
+		return collection
 	}
 
-	return nil
+	return reflect.Value{}
 }
 
-func mapMap(arrValue reflect.Value, funcValue reflect.Value) interface{} {
+func mapMap(arrValue reflect.Value, funcValue reflect.Value) reflect.Value {
 	funcType := funcValue.Type()
 
 	if funcType.NumIn() != 2 || funcType.NumOut() == 0 || funcType.NumOut() > 2 {
-		panic("Map function with an map must have one parameter and must return one or two parameters")
+		panic("Map function with a map must have two parameters and must return one or two parameters")
 	}
 
 	// Only one returned parameter, should be a slice
@@ -169,7 +199,7 @@ func mapMap(arrValue reflect.Value, funcValue reflect.Value) interface{} {
 			resultSlice = reflect.Append(resultSlice, result)
 		}
 
-		return resultSlice.Interface()
+		return resultSlice
 	}
 
 	// two parameters, should be a map
@@ -187,14 +217,24 @@ func mapMap(arrValue reflect.Value, funcValue reflect.Value) interface{} {
 
 		}
 
-		return collection.Interface()
+		return collection
+	}
+
+	return reflect.Value{}
+}
+
+// Map manipulates an iteratee and transforms it to another type.
+func Map(arr interface{}, mapFunc interface{}) interface{} {
+	result := mapFn(arr, mapFunc, "Map")
+
+	if result.IsValid() {
+		return result.Interface()
 	}
 
 	return nil
 }
 
-// Map manipulates an iteratee and transforms it to another type.
-func Map(arr interface{}, mapFunc interface{}) interface{} {
+func mapFn(arr interface{}, mapFunc interface{}, funcName string) reflect.Value {
 	if !IsIteratee(arr) {
 		panic("First parameter must be an iteratee")
 	}
@@ -213,13 +253,50 @@ func Map(arr interface{}, mapFunc interface{}) interface{} {
 
 	if kind == reflect.Slice || kind == reflect.Array {
 		return mapSlice(arrValue, funcValue)
-	}
-
-	if kind == reflect.Map {
+	} else if kind == reflect.Map {
 		return mapMap(arrValue, funcValue)
 	}
 
-	panic(fmt.Sprintf("Type %s is not supported by Map", arrType.String()))
+	panic(fmt.Sprintf("Type %s is not supported by "+funcName, arrType.String()))
+}
+
+// FlatMap manipulates an iteratee and transforms it to a flattened collection of another type.
+func FlatMap(arr interface{}, mapFunc interface{}) interface{} {
+	result := mapFn(arr, mapFunc, "FlatMap")
+
+	if result.IsValid() {
+		return flatten(result).Interface()
+	}
+
+	return nil
+}
+
+// Flatten flattens a two-dimensional array.
+func Flatten(out interface{}) interface{} {
+	return flatten(reflect.ValueOf(out)).Interface()
+}
+
+func flatten(value reflect.Value) reflect.Value {
+	sliceType := value.Type()
+
+	if (value.Kind() != reflect.Slice && value.Kind() != reflect.Array) ||
+		(sliceType.Elem().Kind() != reflect.Slice && sliceType.Elem().Kind() != reflect.Array) {
+		panic("Argument must be an array or slice of at least two dimensions")
+	}
+
+	resultSliceType := sliceType.Elem().Elem()
+
+	resultSlice := reflect.MakeSlice(reflect.SliceOf(resultSliceType), 0, 0)
+
+	length := value.Len()
+
+	for i := 0; i < length; i++ {
+		item := value.Index(i)
+
+		resultSlice = reflect.AppendSlice(resultSlice, item)
+	}
+
+	return resultSlice
 }
 
 // FlattenDeep recursively flattens array.
@@ -232,10 +309,10 @@ func flattenDeep(value reflect.Value) reflect.Value {
 
 	resultSlice := reflect.MakeSlice(reflect.SliceOf(sliceType), 0, 0)
 
-	return flatten(value, resultSlice)
+	return flattenRecursive(value, resultSlice)
 }
 
-func flatten(value reflect.Value, result reflect.Value) reflect.Value {
+func flattenRecursive(value reflect.Value, result reflect.Value) reflect.Value {
 	length := value.Len()
 
 	for i := 0; i < length; i++ {
@@ -243,7 +320,7 @@ func flatten(value reflect.Value, result reflect.Value) reflect.Value {
 		kind := item.Kind()
 
 		if kind == reflect.Slice || kind == reflect.Array {
-			result = flatten(item, result)
+			result = flattenRecursive(item, result)
 		} else {
 			result = reflect.Append(result, item)
 		}
@@ -313,8 +390,9 @@ func Uniq(in interface{}) interface{} {
 	if kind == reflect.Array || kind == reflect.Slice {
 		length := value.Len()
 
+		result := makeSlice(value, 0)
+
 		seen := make(map[interface{}]bool, length)
-		j := 0
 
 		for i := 0; i < length; i++ {
 			val := value.Index(i)
@@ -325,11 +403,48 @@ func Uniq(in interface{}) interface{} {
 			}
 
 			seen[v] = true
-			value.Index(j).Set(val)
-			j++
+			result = reflect.Append(result, val)
 		}
 
-		return value.Slice(0, j).Interface()
+		return result.Interface()
+	}
+
+	panic(fmt.Sprintf("Type %s is not supported by Uniq", valueType.String()))
+}
+
+// Uniq creates an array with unique values.
+func UniqBy(in interface{}, mapFunc interface{}) interface{} {
+	if !IsFunction(mapFunc) {
+		panic("Second argument must be function")
+	}
+
+	value := reflect.ValueOf(in)
+	valueType := value.Type()
+
+	kind := value.Kind()
+
+	funcValue := reflect.ValueOf(mapFunc)
+
+	if kind == reflect.Array || kind == reflect.Slice {
+		length := value.Len()
+
+		result := makeSlice(value, 0)
+
+		seen := make(map[interface{}]bool, length)
+
+		for i := 0; i < length; i++ {
+			val := value.Index(i)
+			v := funcValue.Call([]reflect.Value{val})[0].Interface()
+
+			if _, ok := seen[v]; ok {
+				continue
+			}
+
+			seen[v] = true
+			result = reflect.Append(result, val)
+		}
+
+		return result.Interface()
 	}
 
 	panic(fmt.Sprintf("Type %s is not supported by Uniq", valueType.String()))
@@ -391,4 +506,113 @@ func Drop(in interface{}, n int) interface{} {
 	}
 
 	panic(fmt.Sprintf("Type %s is not supported by Drop", valueType.String()))
+}
+
+// Prune returns a copy of "in" that only contains fields in "paths"
+// which are looked up using struct field name.
+// For lookup paths by field tag instead, use funk.PruneByTag()
+func Prune(in interface{}, paths []string) (interface{}, error) {
+	return pruneByTag(in, paths, nil /*tag*/)
+}
+
+// pruneByTag returns a copy of "in" that only contains fields in "paths"
+// which are looked up using struct field Tag "tag".
+func PruneByTag(in interface{}, paths []string, tag string) (interface{}, error) {
+	return pruneByTag(in, paths, &tag)
+}
+
+// pruneByTag returns a copy of "in" that only contains fields in "paths"
+// which are looked up using struct field Tag "tag". If tag is nil,
+// traverse paths using struct field name
+func pruneByTag(in interface{}, paths []string, tag *string) (interface{}, error) {
+	inValue := reflect.ValueOf(in)
+
+	ret := reflect.New(inValue.Type()).Elem()
+
+	for _, path := range paths {
+		parts := strings.Split(path, ".")
+		if err := prune(inValue, ret, parts, tag); err != nil {
+			return nil, err
+		}
+	}
+	return ret.Interface(), nil
+}
+
+func prune(inValue reflect.Value, ret reflect.Value, parts []string, tag *string) error {
+	if len(parts) == 0 {
+		// we reached the location that ret needs to hold inValue
+		// Note: The value at the end of the path is not copied, maybe we need to change.
+		// ret and the original data holds the same reference to this value
+		ret.Set(inValue)
+		return nil
+	}
+
+	inKind := inValue.Kind()
+
+	switch inKind {
+	case reflect.Ptr:
+		if inValue.IsNil() {
+			// TODO validate
+			return nil
+		}
+		if ret.IsNil() {
+			// init ret and go to next level
+			ret.Set(reflect.New(inValue.Type().Elem()))
+		}
+		return prune(inValue.Elem(), ret.Elem(), parts, tag)
+	case reflect.Struct:
+		part := parts[0]
+		var fValue reflect.Value
+		var fRet reflect.Value
+		if tag == nil {
+			// use field name
+			fValue = inValue.FieldByName(part)
+			if !fValue.IsValid() {
+				return fmt.Errorf("field name %v is not found in struct %v", part, inValue.Type().String())
+			}
+			fRet = ret.FieldByName(part)
+		} else {
+			// search tag that has key equal to part
+			found := false
+			for i := 0; i < inValue.NumField(); i++ {
+				f := inValue.Type().Field(i)
+				if key, ok := f.Tag.Lookup(*tag); ok {
+					if key == part {
+						fValue = inValue.Field(i)
+						fRet = ret.Field(i)
+						found = true
+						break
+					}
+				}
+			}
+			if !found {
+				return fmt.Errorf("struct tag %v is not found with key %v", *tag, part)
+			}
+		}
+		// init Ret is zero and go down one more level
+		if fRet.IsZero() {
+			fRet.Set(reflect.New(fValue.Type()).Elem())
+		}
+		return prune(fValue, fRet, parts[1:], tag)
+	case reflect.Array, reflect.Slice:
+		// set all its elements
+		length := inValue.Len()
+		// init ret
+		if ret.IsZero() {
+			if inKind == reflect.Slice {
+				ret.Set(reflect.MakeSlice(inValue.Type(), length /*len*/, length /*cap*/))
+			} else { // array
+				ret.Set(reflect.New(inValue.Type()).Elem())
+			}
+		}
+		for j := 0; j < length; j++ {
+			if err := prune(inValue.Index(j), ret.Index(j), parts, tag); err != nil {
+				return err
+			}
+		}
+	default:
+		return fmt.Errorf("path %v cannot be looked up on kind of %v", strings.Join(parts, "."), inValue.Kind())
+	}
+
+	return nil
 }

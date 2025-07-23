@@ -4,9 +4,9 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
-	"oauth2-proxy-nexus3/reverseproxy"
 
 	env "github.com/caarlos0/env/v6"
+	"github.com/le-garff-yoann/oauth2-proxy-nexus3/reverseproxy"
 )
 
 var cfg = config{}

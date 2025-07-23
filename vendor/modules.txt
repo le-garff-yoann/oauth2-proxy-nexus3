@@ -1,22 +1,26 @@
-# github.com/caarlos0/env/v6 v6.2.1
-## explicit
+# github.com/caarlos0/env/v6 v6.10.1
+## explicit; go 1.17
 github.com/caarlos0/env/v6
-# github.com/davecgh/go-spew v1.1.0
+# github.com/davecgh/go-spew v1.1.1
+## explicit
 github.com/davecgh/go-spew/spew
-# github.com/google/uuid v1.1.1
+# github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
-# github.com/gorilla/mux v1.7.4
-## explicit
+# github.com/gorilla/mux v1.8.1
+## explicit; go 1.20
 github.com/gorilla/mux
 # github.com/pmezard/go-difflib v1.0.0
+## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/stretchr/testify v1.5.1
-## explicit
+# github.com/stretchr/testify v1.10.0
+## explicit; go 1.17
 github.com/stretchr/testify/assert
+github.com/stretchr/testify/assert/yaml
 github.com/stretchr/testify/require
-# github.com/thoas/go-funk v0.6.0
-## explicit
+# github.com/thoas/go-funk v0.9.3
+## explicit; go 1.13
 github.com/thoas/go-funk
-# gopkg.in/yaml.v2 v2.2.2
-gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3

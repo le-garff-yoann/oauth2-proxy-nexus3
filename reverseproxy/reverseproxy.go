@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"oauth2-proxy-nexus3/authprovider"
-	"oauth2-proxy-nexus3/nexus"
 
 	"github.com/gorilla/mux"
+	"github.com/le-garff-yoann/oauth2-proxy-nexus3/authprovider"
+	"github.com/le-garff-yoann/oauth2-proxy-nexus3/nexus"
 )
 
 const routeName = "main"

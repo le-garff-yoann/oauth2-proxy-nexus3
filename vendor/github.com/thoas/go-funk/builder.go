@@ -11,14 +11,18 @@ type Builder interface {
 	Compact() Builder
 	Drop(n int) Builder
 	Filter(predicate interface{}) Builder
+	Flatten() Builder
 	FlattenDeep() Builder
 	Initial() Builder
 	Intersect(y interface{}) Builder
+	Join(rarr interface{}, fnc JoinFnc) Builder
 	Map(mapFunc interface{}) Builder
+	FlatMap(mapFunc interface{}) Builder
 	Reverse() Builder
 	Shuffle() Builder
 	Tail() Builder
 	Uniq() Builder
+	Without(values ...interface{}) Builder
 
 	All() bool
 	Any() bool
@@ -35,7 +39,7 @@ type Builder interface {
 	LastIndexOf(elem interface{}) int
 	NotEmpty() bool
 	Product() float64
-	Reduce(reduceFunc, acc interface{}) float64
+	Reduce(reduceFunc, acc interface{}) interface{}
 	Sum() float64
 	Type() reflect.Type
 	Value() interface{}
@@ -72,7 +76,7 @@ func LazyChain(v interface{}) Builder {
 
 }
 
-// LazyChainWith creates a lzy go-funk.Builder from a generator. Like LazyChain, each 
+// LazyChainWith creates a lazy go-funk.Builder from a generator. Like LazyChain, each 
 // method call generate a new builder containing a method generating the previous value.
 // But, instead of using a collection, it takes a generator which can generate values.
 // With LazyChainWith, to can create a generic pipeline of collection transformation and, 

@@ -7,7 +7,7 @@ go-funk
 
 .. image:: https://godoc.org/github.com/thoas/go-funk?status.svg
     :alt: GoDoc
-    :target: https://godoc.org/github.com/thoas/go-funk
+    :target: https://pkg.go.dev/github.com/thoas/go-funk
 
 .. image:: https://goreportcard.com/badge/github.com/thoas/go-funk
     :alt: Go report
@@ -109,6 +109,9 @@ this can be replaced by ``funk.Contains``:
 
     // slice of Foo ptr
     funk.Contains([]*Foo{f}, f) // true
+    funk.Contains([]*Foo{f}, func (foo *Foo) bool {
+        return foo.ID == f.ID
+    }) // true
     funk.Contains([]*Foo{f}, nil) // false
 
     b := &Foo{
@@ -126,6 +129,9 @@ this can be replaced by ``funk.Contains``:
 
     // even map
     funk.Contains(map[int]string{1: "Florent"}, 1) // true
+    funk.Contains(map[int]string{1: "Florent"}, func(key int, name string) bool {
+        return key == 1 // or `name == "Florent"` for the value type
+    }) // true
 
 see also, typesafe implementations: ContainsInt_, ContainsInt64_, ContainsFloat32_, ContainsFloat64_, ContainsString_
 
@@ -140,10 +146,10 @@ funk.Intersect
 
 Returns the intersection between two collections.
 
-```
-inter := funk.Intersect([]int{1, 2, 3, 4}, []int{2, 4, 6})  // []int{2, 4}
-inter := funk.Intersect([]string{"foo", "bar", "hello", "bar"}, []string{"foo", "bar"})  // []string{"foo", "bar"}
-```
+.. code-block:: go
+
+    funk.Intersect([]int{1, 2, 3, 4}, []int{2, 4, 6})  // []int{2, 4}
+    funk.Intersect([]string{"foo", "bar", "hello", "bar"}, []string{"foo", "bar"})  // []string{"foo", "bar"}
 
 see also, typesafe implementations: IntersectString
 
@@ -155,10 +161,10 @@ funk.Difference
 
 Returns the difference between two collections.
 
-```
-left, right := funk.Difference([]int{1, 2, 3, 4}, []int{2, 4, 6})  // []int{1, 3}, []int{6}
-left, right := funk.Difference([]string{"foo", "bar", "hello", "bar"}, []string{"foo", "bar"})  // []string{"hello"}, []string{}
-```
+.. code-block:: go
+
+    funk.Difference([]int{1, 2, 3, 4}, []int{2, 4, 6})  // []int{1, 3}, []int{6}
+    funk.Difference([]string{"foo", "bar", "hello", "bar"}, []string{"foo", "bar"})  // []string{"hello"}, []string{}
 
 see also, typesafe implementations: DifferenceString
 
@@ -175,6 +181,9 @@ if the value cannot be found.
 
     // slice of string
     funk.IndexOf([]string{"foo", "bar"}, "bar") // 1
+    funk.IndexOf([]string{"foo", "bar"}, func(value string) bool {
+        return value == "bar"
+    }) // 1
     funk.IndexOf([]string{"foo", "bar"}, "gilles") // -1
 
 see also, typesafe implementations: IndexOfInt_, IndexOfInt64_, IndexOfFloat32_, IndexOfFloat64_, IndexOfString_
@@ -195,6 +204,9 @@ if the value cannot be found.
 
     // slice of string
     funk.LastIndexOf([]string{"foo", "bar", "bar"}, "bar") // 2
+    funk.LastIndexOf([]string{"foo", "bar"}, func(value string) bool {
+        return value == "bar"
+    }) // 2
     funk.LastIndexOf([]string{"foo", "bar"}, "gilles") // -1
 
 see also, typesafe implementations: LastIndexOfInt_, LastIndexOfInt64_, LastIndexOfFloat32_, LastIndexOfFloat64_, LastIndexOfString_
@@ -208,7 +220,7 @@ see also, typesafe implementations: LastIndexOfInt_, LastIndexOfInt64_, LastInde
 funk.ToMap
 ..........
 
-Transforms a slice of structs to a map based on a ``pivot`` field.
+Transforms a slice or an array of structs to a map based on a ``pivot`` field.
 
 .. code-block:: go
 
@@ -230,6 +242,33 @@ Transforms a slice of structs to a map based on a ``pivot`` field.
 
     mapping := funk.ToMap(results, "ID") // map[int]*Foo{1: f, 2: b}
 
+funk.ToSet
+..........
+
+Transforms an array or a slice to a set (a map with zero-size values).
+
+.. code-block:: go
+
+    f := Foo{
+        ID:        1,
+        FirstName: "Gilles",
+        LastName:  "Fabio",
+        Age:       70,
+    }
+
+    b := Foo{
+        ID:        2,
+        FirstName: "Florent",
+        LastName:  "Messa",
+        Age:       80,
+    }
+
+    mapping := funk.ToSet([]Foo{f, b}) // map[Foo]stuct{}{f: struct{}{}, b: struct{}{}}
+
+    mapping := funk.ToSet([4]int{1, 1, 2, 2}) // map[int]struct{}{1: struct{}{}, 2: struct{}{}}
+
+
+
 funk.Filter
 ...........
 
@@ -248,6 +287,26 @@ see also, typesafe implementations: FilterInt_, FilterInt64_, FilterFloat32_, Fi
 .. _FilterInt: https://godoc.org/github.com/thoas/go-funk#FilterInt
 .. _FilterInt64: https://godoc.org/github.com/thoas/go-funk#FilterInt64
 .. _FilterString: https://godoc.org/github.com/thoas/go-funk#FilterString
+
+funk.Reduce
+...........
+
+Reduces an iteratee based on an accumulator function or operation rune for numbers.
+
+.. code-block:: go
+
+    // Using operation runes. '+' and '*' only supported.
+    r := funk.Reduce([]int{1, 2, 3, 4}, '+', float64(0)) // 10
+    r := funk.Reduce([]int{1, 2, 3, 4}, '*', 1) // 24
+
+    // Using accumulator function
+    r := funk.Reduce([]int{1, 2, 3, 4}, func(acc float64, num int) float64 {
+        return acc + float64(num)
+    }, float64(0)) // 10
+
+    r := funk.Reduce([]int{1, 2, 3, 4}, func(acc string, num int) string {
+        return acc + fmt.Sprint(num)
+    }, "") // "1234"
 
 funk.Find
 .........
@@ -305,10 +364,33 @@ Manipulates an iteratee (map, slice) and transforms it to another type:
         return fmt.Sprintf("%d", k), v
     }) // map[string]string{"1": "Florent", "2": "Gilles"}
 
+funk.FlatMap
+............
+
+Manipulates an iteratee (map, slice) and transforms it to to a flattened collection of another type:
+
+* map -> slice
+* slice -> slice
+
+.. code-block:: go
+
+    r := funk.FlatMap([][]int{{1, 2}, {3, 4}}, func(x []int) []int {
+        return append(x, 0)
+    }) // []int{1, 2, 0, 3, 4, 0}
+
+    mapping := map[string][]int{
+        "Florent": {1, 2},
+        "Gilles": {3, 4},
+    }
+
+    r = funk.FlatMap(mapping, func(k string, v []int) []int {
+        return v
+    }) // []int{1, 2, 3, 4}
+
 funk.Get
 ........
 
-Retrieves the value at path of struct(s).
+Retrieves the value at path of struct(s) or map(s).
 
 .. code-block:: go
 
@@ -345,6 +427,38 @@ Retrieves the value at path of struct(s).
     funk.Get([]*Foo{foo}, "Bar.Bars.Bar.Name") // []string{"Level2-1", "Level2-2"}
     funk.Get(foo, "Bar.Bars.Bar.Name") // []string{"Level2-1", "Level2-2"}
     funk.Get(foo, "Bar.Name") // Test
+
+``funk.Get`` also support ``map`` values:
+
+.. code-block:: go
+
+    bar := map[string]interface{}{
+        "Name": "Test",
+    }
+
+    foo1 := map[string]interface{}{
+        "ID":        1,
+        "FirstName": "Dark",
+        "LastName":  "Vador",
+        "Age":       30,
+        "Bar":       bar,
+    }
+
+    foo2 := &map[string]interface{}{
+        "ID":        1,
+        "FirstName": "Dark",
+        "LastName":  "Vador",
+        "Age":       30,
+        "Labels": map[string]interface{} {
+            "example.com/hello": "world",
+        },
+    } // foo2.Bar is nil
+
+    funk.Get(bar, "Name") // "Test"
+    funk.Get([]map[string]interface{}{foo1, foo2}, "Bar.Name") // []string{"Test"}
+    funk.Get(foo2, "Bar.Name") // nil
+    funk.Get(foo2, `Labels."example.com/hello"`) // world
+
 
 ``funk.Get`` also handles ``nil`` values:
 
@@ -386,6 +500,65 @@ Retrieves the value of the pointer or default.
     GetOrElse(str, "foobar")    // string{"hello world"}
     GetOrElse(nil, "foobar")    // string{"foobar"}
 
+funk.Set
+........
+Set value at a path of a struct
+
+.. code-block:: go
+
+    var bar Bar = Bar{
+        Name: "level-0",
+        Bar: &Bar{
+            Name: "level-1",
+            Bars: []*Bar{
+                {Name: "level2-1"},
+                {Name: "level2-2"},
+            },
+        },
+    }
+
+    _ = Set(&bar, "level-0-new", "Name")
+    fmt.Println(bar.Name) // "level-0-new"
+
+    MustSet(&bar, "level-1-new", "Bar.Name")
+    fmt.Println(bar.Bar.Name) // "level-1-new"
+
+    Set(&bar, "level-2-new", "Bar.Bars.Name")
+    fmt.Println(bar.Bar.Bars[0].Name) // "level-2-new"
+    fmt.Println(bar.Bar.Bars[1].Name) // "level-2-new"
+
+funk.MustSet
+............
+Short hand for funk.Set if struct does not contain interface{} field type to discard errors.
+
+funk.Prune
+..........
+Copy a struct with only selected fields. Slice is handled by pruning all elements.
+
+.. code-block:: go
+
+    bar := &Bar{
+        Name: "Test",
+    }
+
+    foo1 := &Foo{
+        ID:        1,
+        FirstName: "Dark",
+        LastName:  "Vador",
+        Bar:       bar,
+    }
+
+    pruned, _ := Prune(foo1, []string{"FirstName", "Bar.Name"})
+    // *Foo{
+    //    ID:        0,
+    //    FirstName: "Dark",
+    //    LastName:  "",
+    //    Bar:       &Bar{Name: "Test},
+    // }
+
+funk.PruneByTag
+..........
+Same functionality as funk.Prune, but uses struct tags instead of struct field names.
 
 funk.Keys
 .........
@@ -412,7 +585,7 @@ Creates an array of the own enumerable map values or struct field values.
 
 .. code-block:: go
 
-    funk.Values(map[string]int{"one": 1, "two": 2}) // []string{1, 2} (iteration order is not guaranteed)
+    funk.Values(map[string]int{"one": 1, "two": 2}) // []int{1, 2} (iteration order is not guaranteed)
 
     foo := &Foo{
         ID:        1,
@@ -428,11 +601,17 @@ funk.ForEach
 
 Range over an iteratee (map, slice).
 
+Or update element in slice(Not map, reflect#Value#MapIndex#CanSet is false).
+
 .. code-block:: go
 
     funk.ForEach([]int{1, 2, 3, 4}, func(x int) {
         fmt.Println(x)
     })
+
+    foo := []int{1,2,3}
+    funk.ForEach(foo, func(x *int){ *x = *x * 2})
+    fmt.Println(foo) // []int{2, 4, 6}
 
 funk.ForEachRight
 ............
@@ -484,6 +663,29 @@ see also, typesafe implementations: UniqInt_, UniqInt64_, UniqFloat32_, UniqFloa
 .. _UniqInt: https://godoc.org/github.com/thoas/go-funk#UniqInt
 .. _UniqInt64: https://godoc.org/github.com/thoas/go-funk#UniqInt64
 .. _UniqString: https://godoc.org/github.com/thoas/go-funk#UniqString
+
+funk.UniqBy
+.........
+
+Creates an array with unique values returned by a callback.
+
+.. code-block:: go
+
+    funk.UniqBy([]int{0, 1, 1, 2, 3, 0, 0, 12}, func(nbr int) int {
+		return nbr % 3
+	}) // []int{0, 1, 2}
+
+    foo1 := Foo{
+        ID: 42,
+        FirstName: "Bob",
+    }
+    foo2 := Foo{
+        ID: 42,
+        FirstName: "Bob",
+    }
+    funk.UniqBy([]Foo{foo1, foo2}, func(f Foo) int {
+		return f.ID
+	}) // []Foo{ Foo{ID: 42, Firstname: "Bob"} }
 
 funk.Drop
 .........
@@ -628,7 +830,18 @@ Generates a sharded string with a fixed length and depth.
 
     funk.Shard("e89d66bdfdd4dd26b682cc77e23a86eb", 2, 2, false) // []string{"e8", "9d", "e89d66bdfdd4dd26b682cc77e23a86eb"}
 
-    funk.Shard("e89d66bdfdd4dd26b682cc77e23a86eb", 2, 2, true) // []string{"e8", "9d", "66", "bdfdd4dd26b682cc77e23a86eb"}
+    funk.Shard("e89d66bdfdd4dd26b682cc77e23a86eb", 2, 3, true) // []string{"e8", "9d", "66", "bdfdd4dd26b682cc77e23a86eb"}
+
+funk.Subset
+.............
+
+Returns true if a collection is a subset of another
+
+.. code-block:: go
+
+    funk.Subset([]int{1, 2, 4}, []int{1, 2, 3, 4, 5}) // true
+    funk.Subset([]string{"foo", "bar"},[]string{"foo", "bar", "hello", "bar", "hi"}) //true
+
 
 Performance
 -----------

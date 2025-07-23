@@ -1,5 +1,4 @@
-version: "3"
-
+---
 services:
   nginx:
     build:
@@ -13,13 +12,12 @@ services:
     ports:
       - "${GITLAB_HTTP:-80}:80"
       - "${GITLAB_HTTP:-443}:443"
-    restart: unless-stopped
     depends_on:
       - gitlab
       - oauth2-proxy
 
   gitlab:
-    image: gitlab/gitlab-ce:12.9.2-ce.0
+    image: gitlab/gitlab-ce:18.0.5-ce.0
     environment:
       GITLAB_ROOT_PASSWORD: "${GITLAB_ROOT_PASSWORD:-root}"
       GITLAB_OMNIBUS_CONFIG: |
@@ -29,7 +27,7 @@ services:
         nginx['listen_https'] = false
 
   oauth2-proxy:
-    image: quay.io/oauth2-proxy/oauth2-proxy:v5.1.0
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.10.0
     environment:
       OAUTH2_PROXY_REVERSE_PROXY: "true"
       OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY: "true"
@@ -41,12 +39,13 @@ services:
       OAUTH2_PROXY_REDEEM_URL: https://gitlab.localhost/oauth/token
       OAUTH2_PROXY_REDIRECT_URL: https://nexus3.localhost/oauth2/callback
       OAUTH2_PROXY_OIDC_ISSUER_URL: https://gitlab.localhost
+      OAUTH2_PROXY_OIDC_JWKS_URL: https://gitlab.localhost/oauth/discovery/keys
       OAUTH2_PROXY_EMAIL_DOMAINS: "*"
       OAUTH2_PROXY_COOKIE_NAME: "${OAUTH2_PROXY_COOKIE_NAME:-_oauth2_proxy}"
       OAUTH2_PROXY_COOKIE_SECRET: "${OAUTH2_PROXY_COOKIE_SECRET:-b5a588cac11b869e729fcd688b38e6df}"
       OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
       OAUTH2_PROXY_PASS_ACCESS_TOKEN: "true"
-    restart: unless-stopped
+      OAUTH2_PROXY_SKIP_OIDC_DISCOVERY: "true"
     depends_on:
       - gitlab
       - oauth2-proxy-nexus3
@@ -63,14 +62,12 @@ services:
       O2PN3_NEXUS3_URL: http://nexus3:8081
       O2PN3_NEXUS3_ADMIN_USER: $O2PN3_NEXUS3_ADMIN_USER
       O2PN3_NEXUS3_ADMIN_PASSWORD: $O2PN3_NEXUS3_ADMIN_PASSWORD
-    restart: unless-stopped
     depends_on:
       - nexus3
 
   nexus3:
     build:
       context: nexus3/
-    restart: unless-stopped
 
 networks:
   default:

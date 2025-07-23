@@ -18,6 +18,9 @@ func (b *lazyBuilder) Drop(n int) Builder {
 func (b *lazyBuilder) Filter(predicate interface{}) Builder {
 	return &lazyBuilder{func() interface{} { return Filter(b.exec(), predicate) }}
 }
+func (b *lazyBuilder) Flatten() Builder {
+	return &lazyBuilder{func() interface{} { return Flatten(b.exec()) }}
+}
 func (b *lazyBuilder) FlattenDeep() Builder {
 	return &lazyBuilder{func() interface{} { return FlattenDeep(b.exec()) }}
 }
@@ -27,8 +30,14 @@ func (b *lazyBuilder) Initial() Builder {
 func (b *lazyBuilder) Intersect(y interface{}) Builder {
 	return &lazyBuilder{func() interface{} { return Intersect(b.exec(), y) }}
 }
+func (b *lazyBuilder) Join(rarr interface{}, fnc JoinFnc) Builder {
+	return &lazyBuilder{func() interface{} { return Join(b.exec(), rarr, fnc) }}
+}
 func (b *lazyBuilder) Map(mapFunc interface{}) Builder {
 	return &lazyBuilder{func() interface{} { return Map(b.exec(), mapFunc) }}
+}
+func (b *lazyBuilder) FlatMap(mapFunc interface{}) Builder {
+	return &lazyBuilder{func() interface{} { return FlatMap(b.exec(), mapFunc) }}
 }
 func (b *lazyBuilder) Reverse() Builder {
 	return &lazyBuilder{func() interface{} { return Reverse(b.exec()) }}
@@ -41,6 +50,9 @@ func (b *lazyBuilder) Tail() Builder {
 }
 func (b *lazyBuilder) Uniq() Builder {
 	return &lazyBuilder{func() interface{} { return Uniq(b.exec()) }}
+}
+func (b *lazyBuilder) Without(values ...interface{}) Builder {
+	return &lazyBuilder{func() interface{} { return Without(b.exec(), values...) }}
 }
 
 func (b *lazyBuilder) All() bool {
@@ -88,7 +100,7 @@ func (b *lazyBuilder) NotEmpty() bool {
 func (b *lazyBuilder) Product() float64 {
 	return Product(b.exec())
 }
-func (b *lazyBuilder) Reduce(reduceFunc, acc interface{}) float64 {
+func (b *lazyBuilder) Reduce(reduceFunc, acc interface{}) interface{} {
 	return Reduce(b.exec(), reduceFunc, acc)
 }
 func (b *lazyBuilder) Sum() float64 {

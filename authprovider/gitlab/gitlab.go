@@ -6,7 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"oauth2-proxy-nexus3/authprovider"
+
+	"github.com/le-garff-yoann/oauth2-proxy-nexus3/authprovider"
 )
 
 const userInfoEndpointPath = "/oauth/userinfo"
