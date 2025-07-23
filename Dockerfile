@@ -10,6 +10,8 @@ RUN CGO_ENABLED=0 go build -tags="${GO_TAGS}" -o /tmp/oauth2-proxy-nexus3
 
 FROM scratch
 
+LABEL org.opencontainers.image.authors="Yoann Le Garff (le-garff-yoann) <pe.weeble@yahoo.fr>"
+
 COPY --from=build /tmp/oauth2-proxy-nexus3 /
 
 ENTRYPOINT [ "/oauth2-proxy-nexus3" ]
